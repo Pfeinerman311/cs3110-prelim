@@ -42,17 +42,17 @@ let compare c1 c2 =
   | 0 -> String.compare c1.name c2.name
   | x -> x
 
-let rec result_upd res results =
+let rec result_upd res v results =
   match results with
-  | [] -> [{name = res; votes = 1}]
+  | [] -> [{name = res; votes = v}]
   | h::t -> if h.name = res then
-      {name = res; votes = h.votes + 1}::t else
-      h::(result_upd res t)
+      {name = res; votes = h.votes + v}::t else
+      h::(result_upd res v t)
 
 let rec plur_calc ballots results =
   match ballots with
   | [] -> results
-  | h::t -> plur_calc t (result_upd h results)
+  | h::t -> plur_calc t (result_upd h 1 results)
 
 let plur_tally ballots =
   plur_calc ballots [] |> List.sort_uniq compare |> List.rev
@@ -67,6 +67,25 @@ let plur_winner ballots =
   match plur_tally ballots with
   | [] -> failwith "No Votes"
   | h::t -> win_check h t
+
+let rec borda_helper ballot results =
+  match ballot with
+  | [] -> results
+  | h::t -> borda_helper t (result_upd h (List.length ballot) results)
+
+let rec borda_calc ballots results =
+  match ballots with
+  | [] -> results
+  | h::t -> borda_calc t (borda_helper h results)
+
+let borda_tally ballots = 
+  borda_calc ballots [] |> List.sort_uniq compare |> List.rev
+
+let borda_winner ballots =
+  match borda_tally ballots with
+  | [] -> failwith "No Votes"
+  | h::t -> win_check h t
+
 
 let candidate_to_string candidate =
   String.concat "" ["("; candidate.name; ", "; 
